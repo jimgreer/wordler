@@ -1,0 +1,30 @@
+{
+  "name": "wordler",
+  "version": "1.0.0",
+  "description": "A simple AI to play Wordler",
+  "main": "wordler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jimgreer/wordler.git"
+  },
+  "keywords": [
+    "wordler"
+  ],
+  "author": "Jim Greer",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jimgreer/wordler/issues"
+  },
+  "homepage": "https://github.com/jimgreer/wordler#readme",
+  "dependencies": {
+    "@types/filesystem": "^0.0.32",
+    "@types/node": "^17.0.8",
+    "@types/readline-sync": "^1.4.4",
+    "filesystem": "^1.0.1",
+    "readline-sync": "^1.4.10"
+  },
+  "type": "module"
+}
