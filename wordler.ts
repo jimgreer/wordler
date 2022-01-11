@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import { nextTick } from "process";
 import * as readlineSync from "readline-sync";
 
 enum GuessOutcome {
@@ -41,10 +40,10 @@ class Wordler {
   includedLetters: Set<string> = new Set();
 
   // hard mode is a boolean which indicates whether we must guess the same letter once we know it's in a certain slot
-  hardMode: boolean = true;
+  hardMode = true;
 
   // first guess is a boolean which indicates whether we're on the first guess
-  firstGuess: boolean = true;
+  firstGuess = true;
 
   constructor() {
     // fill each board slot with the alphabet
@@ -128,7 +127,7 @@ class Wordler {
 
   // does a word include all included letters?
   wordIncludesAllUnplacedLetters(word: string): boolean {
-    for (let letter of this.includedLetters) {
+    for (const letter of this.includedLetters) {
       if (!word.includes(letter)) {
         return false;
       }
@@ -248,7 +247,7 @@ class Solver {
     const self = this;
 
     this.wordler.dictionary.forEach(function (_, word) {
-      let wordFrequency = self.wordFrequencies.get(word) || 0;
+      const wordFrequency = self.wordFrequencies.get(word) || 0;
       // console.log(`word: ${word} wordFrequency: ${wordFrequency} maxWordFrequency: ${maxWordFrequency}`);
       self.wordFrequencies.set(word, wordFrequency / maxWordFrequency);
     });
@@ -297,7 +296,7 @@ class Solver {
     this.updateWordFrequencies();
     const wordScores = new Array<WordScore>();
 
-    for (let [word, frequencyInEnglish] of this.wordler.dictionary) {
+    for (const [word, frequencyInEnglish] of this.wordler.dictionary) {
       wordScores.push(this.wordScore(word, frequencyInEnglish));
     }
 
@@ -371,32 +370,22 @@ class Player {
     }
   }
 }
-// filter a set of words by those which match length
-function filterByLength(words: Set<string>, length: number): Set<string> {
-  const filteredWords = new Set<string>();
-  words.forEach((word) => {
-    if (word.length === length) {
-      filteredWords.add(word);
-    }
-  });
-  return filteredWords;
-}
 
 function loadFrequencyMap(filename: string): Map<string, number> {
   const frequencyMap = new Map<string, number>();
   const lines = fs.readFileSync(filename, "utf-8").split("\n");
 
-  for (let line in lines) {
+  for (const line in lines) {
     const [word, frequency] = lines[line].split(" ");
     if (word.length === WORD_LENGTH) {
       frequencyMap.set(word.toUpperCase(), Number.parseFloat(frequency));
     }
   }
 
-  return frequencyMap;
+  return frequencyMap; 
 }
 
 export { Player };
-while (true) {
+for (;;) {
   new Player().play();
 }
