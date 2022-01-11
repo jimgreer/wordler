@@ -75,3 +75,6 @@ typings/
 # FuseBox cache
 .fusebox/
 wordler.cjs
+dict-utils.cjs
+wordler.js
+dict-utils.js

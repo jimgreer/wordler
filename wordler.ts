@@ -26,16 +26,20 @@ type Guess = {
   result: GuessOutcome[];
 }
 
+const WORD_LENGTH = 5;
 class Wordler {
   // the dictionary is an array of words which are currently valid
-  dictionary: Set<string> = new Set();
+  dictionary: Set<string> = new Set<string>(
+    fs.readFileSync("dict/dict.txt", "utf8").
+    split("\n"));
 
   // the board is an array of entries for each slot
   // each of which is either a single letter or set of possible letters
   board: (Set<string> | string)[] = [];
 
-  // letters which are known to be in the word, but not yet placed (i.e. yellow)
-  unplacedLetters: Set<string> = new Set();
+  // Letters which are known to be in the word
+  // Lote that even when we place a letter, it can still appear again somewhere else, so we leave it in the set
+  includedLetters: Set<string> = new Set();
 
   // hard mode is a boolean which indicates whether we must guess the same letter once we know it's in a certain slot
   hardMode: boolean = true;
@@ -43,19 +47,17 @@ class Wordler {
   // first guess is a boolean which indicates whether we're on the first guess
   firstGuess: boolean = true;
 
-  // constructor takes a set of words and a solver
-  constructor(dictionary: Set<string>) {
-    this.dictionary = dictionary;
-
+  constructor() {
+    // fill each board slot with the alphabet
     // there must be a more idiomatic way to do this
     const alphabet = Array<string>(26);
-      for (let i = 0; i < 26; i++) {
-        alphabet[i] = String.fromCharCode(65 + i);
-      }
-      
-      for (let i = 0; i < 5; i++) {
-        this.board.push(new Set(alphabet));
-      }
+    for (let i = 0; i < 26; i++) {
+      alphabet[i] = String.fromCharCode(65 + i);
+    }
+    
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      this.board.push(new Set(alphabet));
+    }
   }
 
   // handle result takes a guess and a result and updates the state
@@ -66,11 +68,10 @@ class Wordler {
       switch (result) {
         case GuessOutcome.Green: {
           this.board[i] = letter;
-          this.unplacedLetters.delete(letter);
           break;
         }
         case GuessOutcome.Yellow: {
-          this.unplacedLetters.add(letter);
+          this.includedLetters.add(letter);
           const boardElement = this.board[i];
           if (boardElement instanceof Set) {
             boardElement.delete(letter);
@@ -85,6 +86,7 @@ class Wordler {
               boardElement.delete(letter);
             }
           }
+          break;
         }
       }
     }
@@ -99,7 +101,7 @@ class Wordler {
       return Array.from(set).join(" ");
     }).join("\n"));
     
-    console.log(`\nUnplaced letters: ${Array.from(this.unplacedLetters).join(" ")}\n`);
+    console.log(`\nUnplaced letters: ${Array.from(this.includedLetters).join(" ")}\n`);
   }
 
   // does a word match the current board?
@@ -124,7 +126,7 @@ class Wordler {
 
   // does a word include all included letters?
   wordIncludesAllUnplacedLetters(word: string): boolean {
-    for(let letter of this.unplacedLetters) {
+    for(let letter of this.includedLetters) {
       if (!word.includes(letter)) {
         return false;
       }
@@ -156,7 +158,7 @@ class Wordler {
       }
     });
 
-    console.log(`updated dictionary size: ${this.dictionary.size}`);
+    console.log(`Dictionary size: ${this.dictionary.size}`);
   }
 }
 
@@ -185,7 +187,7 @@ class Solver {
   // constructor takes a wordler
   constructor(wordler: Wordler) {
     this.wordler = wordler;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < WORD_LENGTH; i++) {
       this.slotFrequencies.push(new Map());
     }
   }
@@ -294,13 +296,17 @@ class Solver {
       console.log(`${wordScore.word}: ${wordScore.wordFrequency.toPrecision(2)} - ${wordScore.duplicatePenalty} = ${wordScore.score.toPrecision(2)}`);
     }
 
-    return wordScores[0].word;
+    if (wordScores.length > 0) {
+      return wordScores[0].word;
+    }
+
+    return null;
   }
 }
 
 // allows playing via the terminal
 class Player {
-  wordler = new Wordler(loadWords());
+  wordler = new Wordler();
   solver = new Solver(this.wordler);
   
   printInstructions(): void {
@@ -358,35 +364,6 @@ function filterByLength(words: Set<string>, length: number): Set<string> {
 
   });
   return filteredWords;
-}
-
-function loadFilteredWords(path: string): Set<string> {
-  const wordLength = 5;
-  return new Set<string>(
-    fs.readFileSync(path, "utf8").
-    split("\n").
-    filter(word => word.length === wordLength).
-    map(word => word.toUpperCase()));
-}
-
-function loadWords(): Set<string> {
-  // From https://github.com/first20hours/google-10000-english/blob/master/20k.txt
-  const words = loadFilteredWords("dict/google-20k.txt");
-  console.log(`Loaded ${words.size} words`);
-
-  const scrabbleWords = loadFilteredWords("dict/scrabble.txt");
-  console.log(`Loaded ${scrabbleWords.size} Scrabble words`);
-
-  const intersection = new Set<string>();
-  words.forEach(word => {
-    if (scrabbleWords.has(word)) {
-      intersection.add(word);
-    }
-  });
-
-  console.log(`Loaded ${intersection.size} words in common`);
-
-  return intersection;
 }
 
 export { Player };
