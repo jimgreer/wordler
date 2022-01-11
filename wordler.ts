@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { nextTick } from "process";
-import * as readlineSync from "readline-sync" ;
+import * as readlineSync from "readline-sync";
 
 enum GuessOutcome {
   Green = "g",
@@ -24,14 +24,13 @@ function guessOutcomeFromChar(char: string): GuessOutcome {
 type Guess = {
   word: string;
   result: GuessOutcome[];
-}
+};
 
 const WORD_LENGTH = 5;
 class Wordler {
-  // the dictionary is an array of words which are currently valid
-  dictionary: Set<string> = new Set<string>(
-    fs.readFileSync("dict/dict.txt", "utf8").
-    split("\n"));
+  // the dictionary is a map of words to their frequency
+  // as words are filtered out, they are removed
+  dictionary: Map<string, number> = loadFrequencyMap("dict/dict-with-frequencies.txt");
 
   // the board is an array of entries for each slot
   // each of which is either a single letter or set of possible letters
@@ -54,7 +53,7 @@ class Wordler {
     for (let i = 0; i < 26; i++) {
       alphabet[i] = String.fromCharCode(65 + i);
     }
-    
+
     for (let i = 0; i < WORD_LENGTH; i++) {
       this.board.push(new Set(alphabet));
     }
@@ -77,7 +76,7 @@ class Wordler {
             boardElement.delete(letter);
           }
           break;
-        } 
+        }
         case GuessOutcome.Grey: {
           // remove letter from all sets
           for (let j = 0; j < this.board.length; j++) {
@@ -97,10 +96,14 @@ class Wordler {
   printBoard(): void {
     // map first set to a string
     console.log("Board:");
-    console.log(this.board.map(function(set) {
-      return Array.from(set).join(" ");
-    }).join("\n"));
-    
+    console.log(
+      this.board
+        .map(function (set) {
+          return Array.from(set).join(" ");
+        })
+        .join("\n")
+    );
+
     console.log(`\nUnplaced letters: ${Array.from(this.includedLetters).join(" ")}\n`);
   }
 
@@ -114,8 +117,7 @@ class Wordler {
         if (!boardElement.has(letter)) {
           return false;
         }
-      }
-      else {
+      } else {
         if (boardElement !== letter) {
           return false;
         }
@@ -126,14 +128,14 @@ class Wordler {
 
   // does a word include all included letters?
   wordIncludesAllUnplacedLetters(word: string): boolean {
-    for(let letter of this.includedLetters) {
+    for (let letter of this.includedLetters) {
       if (!word.includes(letter)) {
         return false;
       }
     }
-    
+
     return true;
-  } 
+  }
 
   // is a word valid?
   isValidWord(word: string): boolean {
@@ -152,7 +154,7 @@ class Wordler {
   updateDictionary(): void {
     const self = this;
 
-    this.dictionary.forEach(function (word) {
+    this.dictionary.forEach(function (_, word) {
       if (!self.isValidWord(word)) {
         self.dictionary.delete(word);
       }
@@ -163,12 +165,12 @@ class Wordler {
 }
 
 type WordScore = {
-  word: string,
-  wordFrequency: number,
-  duplicatePenalty: number,
-  score: number
-}
-
+  word: string;
+  wordFrequency: number;
+  frequencyInEnglishScore: number;
+  duplicatePenalty: number;
+  score: number;
+};
 
 // Solver is a class which takes a wordler and makes a guess
 class Solver {
@@ -207,14 +209,14 @@ class Solver {
   updateSlotFrequencies(): void {
     const self = this;
 
-    this.wordler.dictionary.forEach(function(word) {
-        for (let i = 0; i < word.length; i++) {
-          const letter = word[i];
-          const frequency = self.slotFrequencies[i].get(letter) || 0;
-          self.slotFrequencies[i].set(letter, frequency + 1);
-        }
+    this.wordler.dictionary.forEach(function (_, word) {
+      for (let i = 0; i < word.length; i++) {
+        const letter = word[i];
+        const frequency = self.slotFrequencies[i].get(letter) || 0;
+        self.slotFrequencies[i].set(letter, frequency + 1);
+      }
     });
-  };
+  }
 
   // calculate the probability of a word being the answer based on the slot frequencies
   calculateWordFrequency(word: string): number {
@@ -225,18 +227,18 @@ class Solver {
       wordFrequency = wordFrequency + slotFrequency;
     }
     return wordFrequency;
-  };
+  }
 
   // update the frequency with which each word appears in the dictionary
   updateWordFrequencies(): void {
     let maxWordFrequency = 0;
     const self = this;
 
-    this.wordler.dictionary.forEach(function(word) {
+    this.wordler.dictionary.forEach(function (_, word) {
       const wordFrequency = self.calculateWordFrequency(word);
       self.wordFrequencies.set(word, wordFrequency);
       maxWordFrequency = Math.max(maxWordFrequency, wordFrequency);
-    })
+    });
 
     this.normalizeWordFrequencies(maxWordFrequency);
   }
@@ -245,12 +247,12 @@ class Solver {
   normalizeWordFrequencies(maxWordFrequency: number): void {
     const self = this;
 
-    this.wordler.dictionary.forEach(function(word) {
+    this.wordler.dictionary.forEach(function (_, word) {
       let wordFrequency = self.wordFrequencies.get(word) || 0;
       // console.log(`word: ${word} wordFrequency: ${wordFrequency} maxWordFrequency: ${maxWordFrequency}`);
       self.wordFrequencies.set(word, wordFrequency / maxWordFrequency);
-    })
-  };
+    });
+  }
 
   // count the number of duplicate letters in a word
   countDuplicateLetters(word: string): number {
@@ -267,15 +269,25 @@ class Solver {
   }
 
   // probability of a word being the answer
-  wordScore(word: string): WordScore {
+  wordScore(word: string, frequencyInEnglish: number): WordScore {
+    const ENGLISH_FREQUENCY_MULTIPLIER = -0.005;
+    const ENGLISH_FREQUENCY_CAP = 0.0;
+    1;
+    const INVERSION_BASE = 0.01;
+
     const wordFrequency = this.wordFrequencies.get(word) || 0;
     const duplicatePenalty = this.countDuplicateLetters(word) * this.duplicatePenalty;
+    const frequencyInEnglishScore = Math.min(
+      INVERSION_BASE - Math.log(frequencyInEnglish) * ENGLISH_FREQUENCY_MULTIPLIER,
+      ENGLISH_FREQUENCY_CAP
+    );
 
     return {
       word: word,
       wordFrequency: wordFrequency,
+      frequencyInEnglishScore: frequencyInEnglishScore,
       duplicatePenalty: duplicatePenalty,
-      score: wordFrequency - duplicatePenalty,
+      score: wordFrequency - duplicatePenalty + frequencyInEnglishScore,
     };
   }
 
@@ -285,15 +297,19 @@ class Solver {
     this.updateWordFrequencies();
     const wordScores = new Array<WordScore>();
 
-    for(let word of this.wordler.dictionary) {
-      wordScores.push(this.wordScore(word));
+    for (let [word, frequencyInEnglish] of this.wordler.dictionary) {
+      wordScores.push(this.wordScore(word, frequencyInEnglish));
     }
 
     wordScores.sort((a, b) => b.score - a.score);
 
     for (let i = 0; i < Math.min(wordScores.length, 10); i++) {
       const wordScore = wordScores[i];
-      console.log(`${wordScore.word}: ${wordScore.wordFrequency.toPrecision(2)} - ${wordScore.duplicatePenalty} = ${wordScore.score.toPrecision(2)}`);
+      console.log(
+        `${wordScore.word}: ${wordScore.wordFrequency.toPrecision(2)} - ${
+          wordScore.duplicatePenalty
+        } + ${wordScore.frequencyInEnglishScore.toPrecision(2)} = ${wordScore.score.toPrecision(2)}`
+      );
     }
 
     if (wordScores.length > 0) {
@@ -308,7 +324,7 @@ class Solver {
 class Player {
   wordler = new Wordler();
   solver = new Solver(this.wordler);
-  
+
   printInstructions(): void {
     console.log("Welcome to Wordler!");
     console.log("I'll make guesses, and you tell me the result.");
@@ -321,33 +337,34 @@ class Player {
 
   // play the game
   play(): void {
-    for(let i=0; i<10; i++) { 
+    for (let i = 0; i < 10; i++) {
       const guessWord = this.solver.getNextGuess();
-      
+
       if (guessWord) {
         console.log(`I'm guessing ${guessWord}`);
-        
-        const resultString = readlineSync.question("Enter the result from Wordler. For example 'ggy..' or 'q' to quit: ");
-        if (resultString === 'q') {
+
+        const resultString = readlineSync.question(
+          "Enter the result from Wordler. For example 'ggy..' or 'q' to quit: "
+        );
+        if (resultString === "q") {
           process.exit();
         }
 
-        if (resultString === 'ggggg' || resultString === '') {
+        if (resultString === "ggggg" || resultString === "") {
           console.log("I win! Let's play again.");
           console.log("-----");
           return;
         }
-        
+
         const result = new Array<GuessOutcome>();
         for (let i = 0; i < resultString.length; i++) {
           const letter = resultString[i];
           result.push(guessOutcomeFromChar(letter));
         }
 
-        const guess = {word: guessWord, result: result};
+        const guess = { word: guessWord, result: result };
         this.wordler.handleResult(guess);
-      }
-      else {
+      } else {
         console.log("I give up. Let's play again");
         return;
       }
@@ -357,14 +374,29 @@ class Player {
 // filter a set of words by those which match length
 function filterByLength(words: Set<string>, length: number): Set<string> {
   const filteredWords = new Set<string>();
-  words.forEach(word => {
+  words.forEach((word) => {
     if (word.length === length) {
       filteredWords.add(word);
     }
-
   });
   return filteredWords;
 }
 
+function loadFrequencyMap(filename: string): Map<string, number> {
+  const frequencyMap = new Map<string, number>();
+  const lines = fs.readFileSync(filename, "utf-8").split("\n");
+
+  for (let line in lines) {
+    const [word, frequency] = lines[line].split(" ");
+    if (word.length === WORD_LENGTH) {
+      frequencyMap.set(word.toUpperCase(), Number.parseFloat(frequency));
+    }
+  }
+
+  return frequencyMap;
+}
+
 export { Player };
-while (true) {new Player().play();}
+while (true) {
+  new Player().play();
+}
