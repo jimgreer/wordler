@@ -6,7 +6,7 @@ function loadFrequencyMap(filename: string): Map<string, number> {
   const frequencyMap = new Map<string, number>();
   const lines = fs.readFileSync(filename, "utf-8").split("\n");
 
-  for (let line in lines) {
+  for (const line in lines) {
     const [word, frequency] = lines[line].split(" ");
     if (word.length === WORD_LENGTH) {
       frequencyMap.set(word.toUpperCase(), Number.parseInt(frequency));
@@ -43,6 +43,7 @@ function loadWords(): Set<string> {
     let frequency = frequencyMap.get(word) || 0;
     frequency /= topFrequency;
     if (frequency > 0.000001) {
+      // eslint-disable-next-line
       console.log(`${word} ${frequency.toPrecision(5)}`);
     }
   }
