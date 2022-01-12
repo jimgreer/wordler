@@ -6,8 +6,14 @@ import { printMessage } from "./util.js";
 
 // allows playing via the terminal
 export default class Player {
-  wordler = new Wordler();
-  solver = new Solver(this.wordler);
+  wordler: Wordler;
+  solver: Solver;
+
+  // constructor takes a solver
+  constructor(solver: Solver) {
+    this.wordler = new Wordler();
+    this.solver = solver;
+  }
 
   printInstructions(): void {
     printMessage("Welcome to Wordler!");
@@ -59,5 +65,5 @@ export default class Player {
 }
 
 for (;;) {
-  new Player().play();
+  new Player(new Solver()).play();
 }

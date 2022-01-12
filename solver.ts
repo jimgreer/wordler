@@ -22,8 +22,8 @@ class Solver {
   wordFrequencies: Map<string, number> = new Map();
 
   // constructor takes a wordler
-  constructor(wordler: Wordler) {
-    this.wordler = wordler;
+  constructor() {
+    this.wordler = new Wordler();
     for (let i = 0; i < Config.WordLength; i++) {
       this.slotFrequencies.push(new Map());
     }
