@@ -1,6 +1,5 @@
 import * as fs from "fs";
-
-const WORD_LENGTH = 5;
+import * as Config from "../config";
 
 function loadFrequencyMap(filename: string): Map<string, number> {
   const frequencyMap = new Map<string, number>();
@@ -8,7 +7,7 @@ function loadFrequencyMap(filename: string): Map<string, number> {
 
   for (const line in lines) {
     const [word, frequency] = lines[line].split(" ");
-    if (word.length === WORD_LENGTH) {
+    if (word.length === Config.WordLength) {
       frequencyMap.set(word.toUpperCase(), Number.parseInt(frequency));
     }
   }
@@ -20,7 +19,7 @@ function readWordFile(path: string): Array<string> {
   return fs
     .readFileSync(path, "utf8")
     .split("\n")
-    .filter((word) => word.length === WORD_LENGTH)
+    .filter((word) => word.length === Config.WordLength)
     .map((word) => word.toUpperCase());
 }
 
