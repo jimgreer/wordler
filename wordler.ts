@@ -326,9 +326,11 @@ class Player {
     return this.solver.makeGuess();
   }
 
+  NUM_GUESSES = 6;
+
   // play the game
   play(): void {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < this.NUM_GUESSES; i++) {
       const guessWord = this.solver.getNextGuess();
 
       if (guessWord) {
@@ -342,7 +344,7 @@ class Player {
         }
 
         if (resultString === "ggggg" || resultString === "") {
-          printMessage("I win! Let's play again.");
+          printMessage(`I got it in ${i + 1}! Let's play again.`);
           printMessage("-----");
           return;
         }
@@ -356,10 +358,11 @@ class Player {
         const guess = { word: guessWord, result: result };
         this.wordler.handleResult(guess);
       } else {
-        printMessage("I give up. Let's play again");
+        printMessage("I give up. Let's play again.");
         return;
       }
     }
+    printMessage("I ran out of guesses. Let's play again.");
   }
 }
 
