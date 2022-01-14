@@ -1,16 +1,16 @@
 import * as readlineSync from "readline-sync";
 
 import { GuessOutcome, guessOutcomeFromChar, Wordler } from "./wordler.js";
-import { Solver } from "./solver.js";
+import { createFrequencySolver, SolverInterface } from "./solver.js";
 import { printMessage } from "./util.js";
 
 // allows playing via the terminal
 export default class Player {
   wordler: Wordler;
-  solver: Solver;
+  solver: SolverInterface;
 
   // constructor takes a solver
-  constructor(solver: Solver) {
+  constructor(solver: SolverInterface) {
     this.wordler = new Wordler();
     this.solver = solver;
   }
@@ -22,7 +22,7 @@ export default class Player {
   }
 
   makeGuess(): string | null {
-    return this.solver.makeGuess();
+    return this.solver.getNextGuess();
   }
 
   // play the game
@@ -65,5 +65,5 @@ export default class Player {
 }
 
 for (;;) {
-  new Player(new Solver()).play();
+  new Player(createFrequencySolver()).play();
 }

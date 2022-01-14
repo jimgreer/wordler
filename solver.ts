@@ -10,8 +10,15 @@ type WordScore = {
   score: number;
 };
 
+interface SolverConstructor {
+  new: () => SolverInterface;
+}
+interface SolverInterface {
+  getNextGuess(): string | null;
+}
+
 // Solver is a class which takes a wordler and makes a guess
-class Solver {
+class FrequencySolver implements SolverInterface {
   // wordler is the wordler we're solving
   wordler: Wordler;
 
@@ -145,4 +152,7 @@ class Solver {
   }
 }
 
-export { Solver };
+function createFrequencySolver(): SolverInterface {
+  return new FrequencySolver();
+}
+export { createFrequencySolver, SolverConstructor, SolverInterface };
